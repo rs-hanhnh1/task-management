@@ -23,6 +23,7 @@ model Card {
   id          String   @id @default(uuid())
   title       String
   description String?
+  tags        String   @default("[]") // JSON string of tags [{id, name, color}]
   order       Int
   listId      String
   list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)

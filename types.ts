@@ -2,6 +2,7 @@ export type Card = {
   id: string;
   title: string;
   description: string | null;
+  tags: string;
   order: number;
   listId: string;
   createdAt: Date;

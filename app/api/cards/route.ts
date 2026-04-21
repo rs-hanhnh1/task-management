@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
-    const { title, listId } = await req.json();
+    const { title, listId, description, tags } = await req.json();
 
     const lastCard = await db.card.findFirst({
       where: { listId },
@@ -17,12 +17,15 @@ export async function POST(req: Request) {
       data: {
         title,
         listId,
+        description,
+        tags,
         order: newOrder,
       },
     });
 
     return NextResponse.json(card);
-  } catch (error) {
-    return new NextResponse("Internal Error", { status: 500 });
+  } catch (error: any) {
+    console.error("[CARDS_POST]", error);
+    return new NextResponse(error.message || "Internal Error", { status: 500 });
   }
 }

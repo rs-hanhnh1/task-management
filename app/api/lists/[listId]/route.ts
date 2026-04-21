@@ -3,24 +3,22 @@ import { db } from "@/lib/db";
 
 export async function PATCH(
   req: Request,
-  { params }: { params: Promise<{ cardId: string }> }
+  { params }: { params: Promise<{ listId: string }> }
 ) {
   try {
-    const { title, description, tags } = await req.json();
-    const { cardId } = await params;
+    const { title } = await req.json();
+    const { listId } = await params;
 
-    const card = await db.card.update({
+    const list = await db.list.update({
       where: {
-        id: cardId,
+        id: listId,
       },
       data: {
         title,
-        description,
-        tags,
       },
     });
 
-    return NextResponse.json(card);
+    return NextResponse.json(list);
   } catch (error) {
     return new NextResponse("Internal Error", { status: 500 });
   }
@@ -28,18 +26,18 @@ export async function PATCH(
 
 export async function DELETE(
   req: Request,
-  { params }: { params: Promise<{ cardId: string }> }
+  { params }: { params: Promise<{ listId: string }> }
 ) {
   try {
-    const { cardId } = await params;
+    const { listId } = await params;
     
-    const card = await db.card.delete({
+    const list = await db.list.delete({
       where: {
-        id: cardId,
+        id: listId,
       },
     });
 
-    return NextResponse.json(card);
+    return NextResponse.json(list);
   } catch (error) {
     return new NextResponse("Internal Error", { status: 500 });
   }
