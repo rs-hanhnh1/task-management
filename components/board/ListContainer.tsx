@@ -41,6 +41,7 @@ export function ListContainer({ initialData }: ListContainerProps) {
     listsRef.current = lists;
   }, [lists]);
 
+  // Sync with server data only when not performing optimistic updates
   useEffect(() => {
     setLists(initialData);
   }, [initialData]);
@@ -59,13 +60,56 @@ export function ListContainer({ initialData }: ListContainerProps) {
   const reorderListsMutation = useMutation({
     mutationFn: (items: { id: string; order: number }[]) =>
       axios.put("/api/lists/reorder", { items }),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["lists"] }),
+    onMutate: async (items) => {
+      await queryClient.cancelQueries({ queryKey: ["lists"] });
+      const previousLists = queryClient.getQueryData<List[]>(["lists"]);
+      
+      // Optimistically update the cache
+      if (previousLists) {
+        const newLists = [...previousLists];
+        items.forEach((item) => {
+          const list = newLists.find((l) => l.id === item.id);
+          if (list) list.order = item.order;
+        });
+        newLists.sort((a, b) => a.order - b.order);
+        queryClient.setQueryData(["lists"], newLists);
+      }
+      
+      return { previousLists };
+    },
+    onError: (err, newItems, context) => {
+      if (context?.previousLists) {
+        queryClient.setQueryData(["lists"], context.previousLists);
+        setLists(context.previousLists);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["lists"] });
+    },
   });
 
   const reorderCardsMutation = useMutation({
     mutationFn: (items: { id: string; order: number; listId: string }[]) =>
       axios.put("/api/cards/reorder", { items }),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ["lists"] }),
+    onMutate: async (items) => {
+      await queryClient.cancelQueries({ queryKey: ["lists"] });
+      const previousLists = queryClient.getQueryData<List[]>(["lists"]);
+      
+      // The lists state in ListContainer is already optimistically updated by onDragOver
+      // So we use it to update the query cache
+      queryClient.setQueryData(["lists"], listsRef.current);
+      
+      return { previousLists };
+    },
+    onError: (err, newItems, context) => {
+      if (context?.previousLists) {
+        queryClient.setQueryData(["lists"], context.previousLists);
+        setLists(context.previousLists);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["lists"] });
+    },
   });
 
   const onDragStart = (event: DragStartEvent) => {
@@ -181,17 +225,26 @@ export function ListContainer({ initialData }: ListContainerProps) {
     setActiveType(null);
 
     const { active, over } = event;
-    if (!over) return;
+    
+    // If we dropped outside or the position didn't change in a meaningful way for lists,
+    // we should still ensure the DB is in sync with the final UI state if it moved during onDragOver.
+    // However, for lists, the move only happens in onDragEnd.
+    
+    if (!over) {
+      // If we dropped outside, revert UI state to server state to be safe
+      setLists(initialData);
+      return;
+    }
 
     const activeId = active.id;
     const overId = over.id;
-
-    if (activeId === overId) return;
 
     const isActiveList = active.data.current?.type === "List";
     const isActiveCard = active.data.current?.type === "Card";
 
     if (isActiveList) {
+      if (activeId === overId) return;
+
       const activeIndex = lists.findIndex((l) => l.id === activeId);
       const overIndex = lists.findIndex((l) => l.id === overId);
 

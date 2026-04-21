@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,21 +11,21 @@ model List {
   id        String   @id @default(uuid())
   title     String
   order     Int
-  cards     Card[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  cards     Card[]
 }
 
 model Card {
   id          String   @id @default(uuid())
   title       String
   description String?
-  tags        String   @default("[]") // JSON string of tags [{id, name, color}]
+  tags        String   @default("[]")
   order       Int
   listId      String
-  list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  list        List     @relation(fields: [listId], references: [id], onDelete: Cascade)
 
   @@index([listId])
 }

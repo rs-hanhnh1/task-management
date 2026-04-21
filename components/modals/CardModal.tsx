@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { Card } from "@/types";
+import { List, Card } from "@/types";
 import { X, Trash2, Tag as TagIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +45,30 @@ export function CardModal({ isOpen, onClose, card }: CardModalProps) {
         description,
         tags: JSON.stringify(selectedTags)
       }),
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["lists"] });
+      const previousLists = queryClient.getQueryData<List[]>(["lists"]);
+
+      if (previousLists) {
+        const newLists = previousLists.map((list) => ({
+          ...list,
+          cards: list.cards.map((c: Card) =>
+            c.id === card.id
+              ? { ...c, description, tags: JSON.stringify(selectedTags) }
+              : c
+          ),
+        }));
+        queryClient.setQueryData(["lists"], newLists);
+      }
+
+      return { previousLists };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousLists) {
+        queryClient.setQueryData(["lists"], context.previousLists);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["lists"] });
     },
   });
