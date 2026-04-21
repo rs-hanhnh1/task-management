@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -33,9 +33,15 @@ export function ListContainer({ initialData }: ListContainerProps) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [activeType, setActiveType] = useState<"List" | "Card" | null>(null);
   const queryClient = useQueryClient();
+  
+  // Use a ref to always have access to the latest state in event handlers
+  const listsRef = useRef<List[]>(lists);
+  
+  useEffect(() => {
+    listsRef.current = lists;
+  }, [lists]);
 
   useEffect(() => {
-    // eslint-disable-next-line
     setLists(initialData);
   }, [initialData]);
 
@@ -116,13 +122,19 @@ export function ListContainer({ initialData }: ListContainerProps) {
           return newLists;
         } else {
           // Different list
+          const newActiveCards = [...activeList.cards];
+          const [movedCard] = newActiveCards.splice(activeCardIndex, 1);
+          
+          const newOverCards = [...overList.cards];
+          newOverCards.splice(overCardIndex, 0, {
+            ...movedCard,
+            listId: overList.id
+          });
+
           const newLists = [...prev];
-          const [movedCard] = newLists[activeListIndex].cards.splice(
-            activeCardIndex,
-            1
-          );
-          movedCard.listId = overList.id;
-          newLists[overListIndex].cards.splice(overCardIndex, 0, movedCard);
+          newLists[activeListIndex] = { ...activeList, cards: newActiveCards };
+          newLists[overListIndex] = { ...overList, cards: newOverCards };
+          
           return newLists;
         }
       });
@@ -147,13 +159,18 @@ export function ListContainer({ initialData }: ListContainerProps) {
           (c) => c.id === activeId
         );
 
+        const newActiveCards = [...activeList.cards];
+        const [movedCard] = newActiveCards.splice(activeCardIndex, 1);
+        
+        const newOverCards = [...overList.cards, {
+          ...movedCard,
+          listId: overList.id
+        }];
+
         const newLists = [...prev];
-        const [movedCard] = newLists[activeListIndex].cards.splice(
-          activeCardIndex,
-          1
-        );
-        movedCard.listId = overList.id;
-        newLists[overListIndex].cards.push(movedCard);
+        newLists[activeListIndex] = { ...activeList, cards: newActiveCards };
+        newLists[overListIndex] = { ...overList, cards: newOverCards };
+        
         return newLists;
       });
     }
@@ -175,24 +192,23 @@ export function ListContainer({ initialData }: ListContainerProps) {
     const isActiveCard = active.data.current?.type === "Card";
 
     if (isActiveList) {
-      setLists((prev) => {
-        const activeIndex = prev.findIndex((l) => l.id === activeId);
-        const overIndex = prev.findIndex((l) => l.id === overId);
+      const activeIndex = lists.findIndex((l) => l.id === activeId);
+      const overIndex = lists.findIndex((l) => l.id === overId);
 
-        const newLists = arrayMove(prev, activeIndex, overIndex);
+      if (activeIndex !== -1 && overIndex !== -1) {
+        const newLists = arrayMove(lists, activeIndex, overIndex);
+        setLists(newLists);
         
         // Update database
         const items = newLists.map((l, index) => ({ id: l.id, order: index + 1 }));
         reorderListsMutation.mutate(items);
-
-        return newLists;
-      });
+      }
     }
 
     if (isActiveCard) {
-      // Find which list the card is now in and update all cards in that list, or just all cards
-      const allCards = lists.flatMap((l) => l.cards);
-      const items = lists.flatMap((l) =>
+      // Use the latest state from the ref to avoid stale closure issues
+      const currentLists = listsRef.current;
+      const items = currentLists.flatMap((l) =>
         l.cards.map((c, index) => ({ id: c.id, order: index + 1, listId: l.id }))
       );
       reorderCardsMutation.mutate(items);
