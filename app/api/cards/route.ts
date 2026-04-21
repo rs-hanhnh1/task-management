@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { CreateCardSchema } from "@/lib/validations/card";
 
 export async function POST(req: Request) {
   try {
-    const { title, listId, description, tags } = await req.json();
+    const body = await req.json();
+    const { title, listId, description, tags } = CreateCardSchema.parse(body);
 
     const lastCard = await db.card.findFirst({
       where: { listId },
@@ -24,8 +26,10 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(card);
-  } catch (error: any) {
-    console.error("[CARDS_POST]", error);
-    return new NextResponse(error.message || "Internal Error", { status: 500 });
+  } catch (error) {
+    if (error instanceof Error && error.name === "ZodError") {
+      return new NextResponse("Invalid request data", { status: 400 });
+    }
+    return new NextResponse("Internal Error", { status: 500 });
   }
 }

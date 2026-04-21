@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { CreateListSchema } from "@/lib/validations/list";
 
 export async function GET() {
   try {
@@ -22,9 +23,10 @@ export async function GET() {
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request) {  
   try {
-    const { title } = await req.json();
+    const body = await req.json();
+    const { title } = CreateListSchema.parse(body);
 
     const lastList = await db.list.findFirst({
       orderBy: { order: "desc" },
@@ -45,6 +47,9 @@ export async function POST(req: Request) {
 
     return NextResponse.json(list);
   } catch (error) {
+    if (error instanceof Error && error.name === "ZodError") {
+      return new NextResponse("Invalid request data", { status: 400 });
+    }
     return new NextResponse("Internal Error", { status: 500 });
   }
 }
