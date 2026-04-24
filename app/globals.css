@@ -3,6 +3,8 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --list-lightness: 96%;
+  --list-border-lightness: 90%;
 }
 
 @theme inline {
@@ -12,6 +14,8 @@
   --font-mono: var(--font-geist-mono);
 }
 
+@custom-variant dark (&:is(.dark *));
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -19,8 +23,59 @@
   }
 }
 
+:root.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --list-lightness: 82%;
+  --list-border-lightness: 72%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(150, 150, 150, 0.4);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(150, 150, 150, 0.7);
+}
+
+/* Hide scrollbar arrows (up/down/left/right buttons) */
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+/* Dark mode specific scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(200, 200, 200, 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(200, 200, 200, 0.4);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(150, 150, 150, 0.4) transparent; /* Firefox */
+}
+
+.dark .custom-scrollbar {
+  scrollbar-color: rgba(200, 200, 200, 0.2) transparent;
 }
