@@ -11,10 +11,14 @@ This skill guides you through reviewing a pull request for correctness, safety, 
 
 ## Before You Start
 
+
 1. **GitNexus**: Call `list_repos` to see what's indexed. If the repo isn't indexed or is stale, index it first via the CLI (`gitnexus analyze`). Read `gitnexus://repo/{name}/context` to check index freshness.
 2. **Serena**: Call `check_onboarding_performed`. If onboarding hasn't been done, run `onboarding`. If it has, read the relevant memories for the current task.
 3. **Serena**: Call `get_current_config` to understand which tools and modes are active.
 
+
+
+If GitNexus OR Serena unavailable: Abort task immediately.
 ---
 
 ## Workflow Steps
